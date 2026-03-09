@@ -1,0 +1,35 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+}
+
+.layout-main {
+  flex: 1;
+  padding: 0;
+  width: 100%;
+}
+
+.page {
+  padding: var(--space-8);
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-6) var(--space-4);
+  }
+}
+
+.page h1 {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.page p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+}

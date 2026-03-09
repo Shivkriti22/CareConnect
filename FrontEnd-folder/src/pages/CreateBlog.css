@@ -1,0 +1,107 @@
+.share-story {
+  padding: var(--space-8);
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, var(--gradient-start) 0%, var(--color-bg) 30%);
+}
+
+.share-story__content {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.share-story__header {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.share-story__header h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-6);
+}
+
+.share-story__intro {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin-bottom: var(--space-4);
+}
+
+.share-story__intro:last-of-type {
+  margin-bottom: 0;
+}
+
+.share-story__form-card {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.share-story__form-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-6);
+}
+
+/* Success state */
+.share-story--success {
+  padding: var(--space-8);
+}
+
+.share-story__card--success {
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 auto;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12);
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.share-story__card--success h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.share-story__card--success p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+  line-height: 1.6;
+}
+
+.share-story__card--success .auth__link {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s ease;
+}
+
+.share-story__card--success .auth__link:hover {
+  background-color: var(--color-primary-subtle);
+}
+
+@media (max-width: 640px) {
+  .share-story {
+    padding: var(--space-4);
+  }
+
+  .share-story__header h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .share-story__form-card {
+    padding: var(--space-6);
+  }
+}
