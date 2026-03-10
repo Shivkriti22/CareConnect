@@ -1,8 +1,55 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { featuredBlogs } from '../data/blogs'
 import './Home.css'
 
 function Home() {
+  const [featuredBlogs, setFeaturedBlogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchFeaturedStories = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/stories/')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch stories')
+        }
+
+        // Transform the data to match frontend structure
+        const transformedStories = data.stories.map((story) => ({
+          id: story._id,
+          title: story.title,
+          excerpt: story.body.substring(0, 150) + '...',
+          author: story.authorName,
+          date: new Date(story.createdAt).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          category: story.diseaseType,
+          readTime: '5 min read',
+          content: story.body,
+          createdAt: story.createdAt, // Keep original date for sorting
+        }))
+
+        // Sort by createdAt in descending order (newest first) and take only the latest 3
+        const sortedStories = transformedStories
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 3)
+
+        setFeaturedBlogs(sortedStories)
+      } catch (err) {
+        console.error('Error fetching featured stories:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFeaturedStories()
+  }, [])
   return (
     <div className="home">
       {/* Hero Section */}
@@ -109,8 +156,13 @@ function Home() {
           </Link>
         </div>
         <div className="featured__grid">
-          {featuredBlogs.map((blog) => (
-            <Link to={`/blogs/${blog.id}`} key={blog.id} className="blog-card">
+          {loading && <p style={{ gridColumn: '1 / -1', textAlign: 'center' }}>Loading stories...</p>}
+          {error && <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#c33' }}>Error: {error}</p>}
+          {!loading && !error && featuredBlogs.length === 0 && (
+            <p style={{ gridColumn: '1 / -1', textAlign: 'center' }}>No featured stories yet.</p>
+          )}
+          {!loading && featuredBlogs.map((blog) => (
+            <Link to={`/story/${blog.id}`} key={blog.id} className="blog-card">
               <div className="blog-card__content">
                 <span className="blog-card__category">{blog.category}</span>
                 <h3 className="blog-card__title">{blog.title}</h3>

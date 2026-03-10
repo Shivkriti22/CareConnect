@@ -1,13 +1,55 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { allBlogs } from '../data/blogs'
 import './Blogs.css'
 
-const CATEGORIES = ['All', ...new Set(allBlogs.map((b) => b.category))]
-
 function Blogs() {
+  const [allBlogs, setAllBlogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+
+  useEffect(() => {
+    const fetchAllStories = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/stories/')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch stories')
+        }
+
+        // Transform the data to match frontend structure
+        const transformedStories = data.stories.map((story) => ({
+          id: story._id,
+          title: story.title,
+          excerpt: story.body.substring(0, 150) + '...',
+          author: story.authorName,
+          authorBio: `Health story by ${story.authorName}`,
+          date: new Date(story.createdAt).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          category: story.diseaseType,
+          readTime: '5 min read',
+          tags: [story.diseaseType.toLowerCase()],
+          content: [story.body],
+        }))
+
+        setAllBlogs(transformedStories)
+      } catch (err) {
+        console.error('Error fetching stories:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAllStories()
+  }, [])
+
+  const CATEGORIES = ['All', ...new Set(allBlogs.map((b) => b.category))]
 
   const filteredBlogs = useMemo(() => {
     return allBlogs.filter((blog) => {
@@ -23,7 +65,7 @@ function Blogs() {
 
       return matchesSearch && matchesCategory
     })
-  }, [searchQuery, selectedCategory])
+  }, [searchQuery, selectedCategory, allBlogs])
 
   return (
     <div className="blogs-page">
@@ -64,9 +106,11 @@ function Blogs() {
       </div>
 
       <div className="blogs-grid">
-        {filteredBlogs.length > 0 ? (
+        {loading && <p style={{ gridColumn: '1 / -1', textAlign: 'center' }}>Loading stories...</p>}
+        {error && <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#c33' }}>Error: {error}</p>}
+        {!loading && !error && filteredBlogs.length > 0 ? (
           filteredBlogs.map((blog) => (
-            <Link to={`/blogs/${blog.id}`} key={blog.id} className="blog-card">
+            <Link to={`/story/${blog.id}`} key={blog.id} className="blog-card">
               <span className="blog-card__category">{blog.category}</span>
               <h3 className="blog-card__title">{blog.title}</h3>
               <p className="blog-card__excerpt">{blog.excerpt}</p>
@@ -84,9 +128,9 @@ function Blogs() {
               </div>
             </Link>
           ))
-        ) : (
+        ) : !loading && !error ? (
           <p className="blogs-empty">No stories match your search. Try adjusting your filters.</p>
-        )}
+        ) : null}
       </div>
     </div>
   )

@@ -156,6 +156,48 @@
   background-color: var(--color-primary-hover);
 }
 
+.navbar__btn--secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+  background-color: transparent;
+  border: 1px solid var(--color-primary);
+}
+
+.navbar__btn--secondary:hover {
+  background-color: var(--color-primary-subtle);
+}
+
+.navbar__btn--logout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: white;
+  background-color: #e74c3c;
+  border: none;
+}
+
+.navbar__btn--logout:hover {
+  background-color: #c0392b;
+}
+
+.navbar__user-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.navbar__user-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .navbar__btn-icon {
   display: flex;
   align-items: center;
@@ -275,6 +317,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .navbar__user-section {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-2);
+  }
+
+  .navbar__user-name {
+    width: 100%;
+    text-align: center;
+    max-width: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navbar__btn--logout {
+    width: 100%;
+  }
+
+  .navbar__btn--secondary {
+    width: 100%;
   }
 }
 

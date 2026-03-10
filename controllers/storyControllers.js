@@ -88,8 +88,71 @@ const getFeaturedStories = async (req, res) => {
 
 
 
+// GET MY STORIES (FOR LOGGED-IN USER)
+
+const getMyStories = async (req, res) => {
+
+  try {
+
+    const stories = await Story.find({ user: req.user.id }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      stories
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+
+  }
+
+};
+
+
+
+// GET STORY BY ID
+
+const getStoryById = async (req, res) => {
+
+  try {
+
+    const story = await Story.findById(req.params.id);
+
+    if (!story) {
+
+      return res.status(404).json({
+        success: false,
+        message: "Story not found"
+      });
+
+    }
+
+    res.status(200).json({
+      success: true,
+      story
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+
+  }
+
+};
+
+
+
 module.exports = {
   createStory,
   getAllStories,
-  getFeaturedStories
+  getFeaturedStories,
+  getMyStories,
+  getStoryById
 };
