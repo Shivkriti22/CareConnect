@@ -154,9 +154,37 @@ const logoutUser = async (req, res) => {
 };
 
 
+// ================= UPDATE PROFILE =================
+
+const updateProfile = async (req, res) => {
+  try {
+
+    const { name, email } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, email },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      user: updatedUser
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+
+  }
+};
 
 module.exports = {
   registerUser,
   loginUser,
-  logoutUser
+  logoutUser,
+  updateProfile
 };

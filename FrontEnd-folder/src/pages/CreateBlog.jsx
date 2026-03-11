@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Auth.css'
 import './CreateBlog.css'
@@ -19,12 +19,16 @@ const DISEASE_CATEGORIES = [
 function CreateBlog() {
   const navigate = useNavigate()
   const { isAuthenticated, token, user } = useAuth()
+  const { id } = useParams()
+  const isEdit = Boolean(id)
+
   const [blogData, setBlogData] = useState({ title: '', blog: '', authorName: user?.name || '', category: '' })
   const [blogErrors, setBlogErrors] = useState({})
   const [blogTouched, setBlogTouched] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [apiError, setApiError] = useState('')
+  const [loadingStory, setLoadingStory] = useState(false)
 
   const validateBlog = (field, value) => {
     switch (field) {
@@ -61,6 +65,36 @@ function CreateBlog() {
     setBlogErrors((prev) => ({ ...prev, [name]: validateBlog(name, value) }))
   }
 
+  // if editing, load existing story data
+  useEffect(() => {
+    if (isEdit) {
+      setLoadingStory(true)
+      const fetchStory = async () => {
+        try {
+          const res = await fetch(`http://localhost:5000/api/stories/${id}`)
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.message || 'Unable to load story')
+          // ensure the current user is owner before populating
+          if (data.story.user && data.story.user !== user?.id) {
+            throw new Error('You do not have permission to edit this story')
+          }
+          setBlogData({
+            title: data.story.title,
+            blog: data.story.body,
+            authorName: data.story.authorName,
+            category: data.story.diseaseType,
+          })
+        } catch (err) {
+          setApiError(err.message)
+        } finally {
+          setLoadingStory(false)
+        }
+      }
+      fetchStory()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, id])
+
   const handleBlogSubmit = async (e) => {
     e.preventDefault()
     const newBlogTouched = { title: true, blog: true, authorName: true, category: true }
@@ -79,35 +113,47 @@ function CreateBlog() {
     setApiError('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/stories/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: blogData.title,
-          body: blogData.blog,
-          authorName: blogData.authorName,
-          diseaseType: blogData.category,
-        }),
-      })
+  const url = isEdit ? `http://localhost:5000/api/stories/${id}` : 'http://localhost:5000/api/stories/create'
+  const method = isEdit ? 'PUT' : 'POST'
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      title: blogData.title,
+      body: blogData.blog,
+      authorName: blogData.authorName,
+      diseaseType: blogData.category,
+    }),
+  })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to create story')
-      }
-
-      setSubmitSuccess(true)
-      // Redirect to blogs page after 2 seconds
-      setTimeout(() => {
-        navigate('/blogs')
-      }, 2000)
-    } catch (error) {
-      setApiError(error.message || 'Failed to create story. Please try again.')
-      setIsSubmitting(false)
-    }
+  let data;
+  if (response.ok) {
+    data = await response.json()
+    setSubmitSuccess(true)
+    // Redirect to blogs page after 2 seconds
+    setTimeout(() => {
+      navigate('/blogs')
+    }, 2000)
+  } else {
+    const errorText = await response.text()
+    throw new Error(errorText || (isEdit ? 'Failed to update story' : 'Failed to create story'))
+  }
+} catch (error) {
+  setApiError(error.message || (isEdit ? 'Failed to update story. Please try again.' : 'Failed to create story. Please try again.'))
+  setIsSubmitting(false)
+}
+  }
+  if (loadingStory) {
+    return (
+      <div className="share-story">
+        <div className="share-story__content">
+          <p>Loading story...</p>
+        </div>
+      </div>
+    )
   }
 
   if (submitSuccess) {
@@ -115,9 +161,11 @@ function CreateBlog() {
       <div className="share-story">
         <div className="share-story__content">
           <header className="share-story__header">
-            <h1>Story Shared!</h1>
+            <h1>{isEdit ? 'Story Updated!' : 'Story Shared!'}</h1>
             <p className="share-story__intro">
-              Thank you for sharing your health journey. Your story will help others feel less alone.
+              {isEdit
+                ? 'Your changes have been saved. Your updated story will continue to help others.'
+                : 'Thank you for sharing your health journey. Your story will help others feel less alone.'}
             </p>
           </header>
 
@@ -182,8 +230,7 @@ function CreateBlog() {
         </header>
 
         <div className="share-story__form-card">
-          <h2 className="share-story__form-title">Create Your Story</h2>
-
+      <h2 className="share-story__form-title">{isEdit ? 'Edit Your Story' : 'Create Your Story'}</h2>
           {apiError && (
             <div style={{ padding: '12px', marginBottom: '16px', backgroundColor: '#fee', borderRadius: '4px', color: '#c33', fontSize: '14px' }}>
               {apiError}
@@ -285,7 +332,7 @@ function CreateBlog() {
               className="auth__submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Submitting...' : 'Share Your Story'}
+              {isSubmitting ? (isEdit ? 'Saving...' : 'Submitting...') : (isEdit ? 'Save Changes' : 'Share Your Story')}
             </button>
           </form>
 

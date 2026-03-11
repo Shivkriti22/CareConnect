@@ -5,10 +5,12 @@ import './Profile.css'
 
 function Profile() {
   const navigate = useNavigate()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, setUser } = useAuth()
   const [authoredBlogs, setAuthoredBlogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteSuccess, setDeleteSuccess] = useState('')
   const [formData, setFormData] = useState({ name: '', email: '' })
   const [isSaving, setIsSaving] = useState(false)
   const [editError, setEditError] = useState('')
@@ -78,6 +80,31 @@ function Profile() {
     setEditSuccess(false)
   }
 
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+      return
+    }
+    setDeleteError('')
+    setDeleteSuccess('')
+    try {
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch(`http://localhost:5000/api/stories/${storyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete story')
+      }
+      setAuthoredBlogs((prev) => prev.filter((b) => b.id !== storyId))
+      setDeleteSuccess('Story deleted successfully')
+    } catch (err) {
+      setDeleteError(err.message)
+    }
+  }
+
   const handleCancelClick = () => {
     setIsEditMode(false)
     setFormData({ name: user.name || '', email: user.email || '' })
@@ -109,7 +136,7 @@ function Profile() {
     try {
       // Call update profile API
       const token = localStorage.getItem('careconnect-token')
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch('http://localhost:5000/api/auth/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,6 +156,13 @@ function Profile() {
 
       // Update localStorage with new user data
       localStorage.setItem('careconnect-user', JSON.stringify(data.user))
+      setUser(data.user)
+ 
+      // Update form
+setFormData({
+  name: data.user.name,
+  email: data.user.email
+})
 
       setEditSuccess(true)
       setIsEditMode(false)
@@ -166,7 +200,6 @@ function Profile() {
               <div className="profile__info">
                 <h1 className="profile__name">{user?.name || 'User'}</h1>
                 <p className="profile__email">{user?.email || ''}</p>
-                <p className="profile__meta">Account ID: {user?.id || ''}</p>
                 <button
                   type="button"
                   className="profile__edit-btn"
@@ -247,15 +280,29 @@ function Profile() {
         {/* Authored Blogs */}
         <section className="profile__section">
           <h2>My Stories</h2>
+          {deleteError && <div className="profile__delete-error">{deleteError}</div>}
+          {deleteSuccess && <div className="profile__delete-success">{deleteSuccess}</div>}
           {authoredBlogs.length > 0 ? (
             <div className="profile__grid">
               {authoredBlogs.map((blog) => (
-                <Link to={`/story/${blog.id}`} key={blog.id} className="profile__card">
-                  <span className="profile__card-category">{blog.category}</span>
-                  <h3 className="profile__card-title">{blog.title}</h3>
-                  <p className="profile__card-excerpt">{blog.excerpt}</p>
-                  <span className="profile__card-meta">{blog.date} · {blog.readTime}</span>
-                </Link>
+                <div key={blog.id} className="profile__card-wrapper">
+                  <Link to={`/story/${blog.id}`} className="profile__card">
+                    <span className="profile__card-category">{blog.category}</span>
+                    <h3 className="profile__card-title">{blog.title}</h3>
+                    <p className="profile__card-excerpt">{blog.excerpt}</p>
+                    <span className="profile__card-meta">{blog.date} · {blog.readTime}</span>
+                  </Link>
+                  <div className="profile__card-actions">
+                    <Link to={`/blogs/edit/${blog.id}`} className="profile__card-action-btn">Edit</Link>
+                    <button
+                      type="button"
+                      className="profile__card-action-btn profile__card-action-btn--delete"
+                      onClick={() => handleDeleteStory(blog.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (

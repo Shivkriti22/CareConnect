@@ -151,6 +151,41 @@
   border-radius: var(--radius-sm);
 }
 
+/* card wrapper and action buttons */
+.blog-card-wrapper {
+  position: relative;
+}
+
+.blog-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.blog-card-action-btn {
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.blog-card-action-btn:hover {
+  background-color: var(--color-primary-subtle);
+}
+
+.blog-card-action-btn--delete {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.blog-card-action-btn--delete:hover {
+  background-color: var(--color-danger-subtle);
+}
 .blogs-empty {
   grid-column: 1 / -1;
   text-align: center;

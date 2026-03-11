@@ -44,7 +44,7 @@ function Navbar() {
           <ul className="navbar__links">
             {navLinks.map(({ to, label }) => (
               <li key={to}>
-                <NavLink to={to} className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} onClick={closeMobileMenu} end={to === '/'}>
+                <NavLink to={to} className={({ isActive }) => `navbar__link ${isActive ? 'navbar__link--active' : ''}`} onClick={closeMobileMenu} end={to === '/' || to === '/blogs'}>
                   {label}
                 </NavLink>
               </li>

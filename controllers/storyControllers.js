@@ -149,10 +149,87 @@ const getStoryById = async (req, res) => {
 
 
 
+
+// UPDATE STORY
+const updateStory = async (req, res) => {
+  try {
+    const { title, body, authorName, diseaseType } = req.body;
+
+    const story = await Story.findById(req.params.id);
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found"
+      });
+    }
+
+    // only allow owner to update
+    if (story.user && story.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    // update fields if provided
+    if (title !== undefined) story.title = title;
+    if (body !== undefined) story.body = body;
+    if (authorName !== undefined) story.authorName = authorName;
+    if (diseaseType !== undefined) story.diseaseType = diseaseType;
+
+    await story.save();
+
+    res.status(200).json({
+      success: true,
+      story
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
+// DELETE STORY
+const deleteStory = async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.id);
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found"
+      });
+    }
+
+    if (story.user && story.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    await story.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Story deleted"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 module.exports = {
   createStory,
   getAllStories,
   getFeaturedStories,
   getMyStories,
-  getStoryById
+  getStoryById,
+  updateStory,
+  deleteStory
 };
