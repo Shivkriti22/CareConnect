@@ -17,12 +17,6 @@ const SEVERITY_OPTIONS = [
   { value: 5, label: 'Extreme', desc: 'Unable to perform normal activities' },
 ]
 
-const MOCK_CONDITIONS = [
-  { name: 'Tension Headache', match: '72%', type: 'Common', typeClass: 'common' },
-  { name: 'Migraine', match: '58%', type: 'Possible', typeClass: 'possible' },
-  { name: 'Sinusitis', match: '34%', type: 'Less likely', typeClass: 'less-likely' },
-]
-
 function SymptomAnalysis() {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
@@ -31,6 +25,9 @@ function SymptomAnalysis() {
     severity: '',
   })
   const [showResults, setShowResults] = useState(false)
+  const [analysis, setAnalysis] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
 
   const updateForm = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -39,7 +36,8 @@ function SymptomAnalysis() {
   const nextStep = () => {
     if (step < 3) setStep(step + 1)
     else {
-      setShowResults(true)
+      // Submit form and call Ollama API
+      submitAnalysis()
     }
   }
 
@@ -47,10 +45,60 @@ function SymptomAnalysis() {
     if (step > 1) setStep(step - 1)
   }
 
+  // Submit form data to backend Ollama API
+  const submitAnalysis = async () => {
+    console.log('>>> Submit triggered', formData)
+    setIsLoading(true)
+    setApiError('')
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 120000) // 120 second timeout
+
+    try {
+      const response = await fetch('http://localhost:5000/api/symptom-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symptoms: formData.symptoms,
+          duration: formData.duration,
+          severity: formData.severity,
+        }),
+        signal: controller.signal
+      })
+
+      console.log('>>> Response received:', response.status)
+
+      const data = await response.json()
+      console.log('>>> Parsed result:', data)
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to analyze symptoms')
+      }
+
+      // Set analysis results and show results view
+      setAnalysis(data.data)
+      setShowResults(true)
+    } catch (error) {
+      console.error('>>> Submit error:', error)
+      if (error.name === 'AbortError') {
+        setApiError('Request timeout. Ollama service may be overloaded. Please try again.')
+      } else {
+        setApiError(error.message || 'An error occurred. Please ensure the backend server is running and Ollama is accessible.')
+      }
+    } finally {
+      clearTimeout(timeoutId)
+      setIsLoading(false)
+    }
+  }
+
   const resetAnalysis = () => {
     setStep(1)
     setFormData({ symptoms: '', duration: '', severity: '' })
     setShowResults(false)
+    setAnalysis(null)
+    setApiError('')
   }
 
   const canProceed = () => {
@@ -58,6 +106,56 @@ function SymptomAnalysis() {
     if (step === 2) return formData.duration.length > 0
     if (step === 3) return formData.severity.length > 0
     return false
+  }
+
+  if (isLoading) {
+    return (
+      <div className="symptom-analysis">
+        <div className="symptom-analysis__container">
+          <header className="symptom-results__header">
+            <div className="symptom-results__icon" aria-hidden="true">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <h1>Analyzing Your Symptoms</h1>
+            <p>Please wait while the AI analyzes your symptoms...</p>
+          </header>
+
+          <div className="symptom-results__conditions" style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'spin 2s linear infinite' }}>⚙️</div>
+            <p style={{ fontSize: '18px', color: '#666' }}>Processing your information...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (apiError) {
+    return (
+      <div className="symptom-analysis">
+        <div className="symptom-analysis__container">
+          <header className="symptom-results__header">
+            <div className="symptom-results__icon" aria-hidden="true">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+            </div>
+            <h1>Analysis Error</h1>
+            <p>Something went wrong while analyzing your symptoms.</p>
+          </header>
+
+          <div className="symptom-results__conditions" style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ padding: '20px', backgroundColor: '#fee', borderRadius: '8px', marginBottom: '20px', color: '#c33', fontSize: '16px' }}>
+              {apiError}
+            </div>
+            <button type="button" className="recommendation-card__btn" onClick={resetAnalysis}>
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (showResults) {
@@ -77,20 +175,32 @@ function SymptomAnalysis() {
           <section className="symptom-results__conditions">
             <h2>Possible Conditions</h2>
             <div className="conditions-grid">
-              {MOCK_CONDITIONS.map((condition, index) => (
-                <div key={condition.name} className="condition-card">
-                  <span className={`condition-card__badge condition-card__badge--${condition.typeClass}`}>
-                    {condition.type}
-                  </span>
-                  <div className="condition-card__icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                    </svg>
-                  </div>
-                  <h3 className="condition-card__name">{condition.name}</h3>
-                  <span className="condition-card__match">{condition.match} match</span>
-                </div>
-              ))}
+              {analysis && analysis.possibleConditions && analysis.possibleConditions.length > 0 ? (
+                analysis.possibleConditions.map((condition) => {
+                  let badgeClass = 'less-likely';
+                  if (condition.likelihood === 'High') badgeClass = 'common';
+                  else if (condition.likelihood === 'Medium') badgeClass = 'possible';
+                  
+                  return (
+                    <div key={condition.name} className="condition-card">
+                      <span className={`condition-card__badge condition-card__badge--${badgeClass}`}>
+                        {condition.likelihood} Likelihood
+                      </span>
+                      <div className="condition-card__icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                        </svg>
+                      </div>
+                      <h3 className="condition-card__name">{condition.name}</h3>
+                      <p style={{ fontSize: '13px', color: '#666', marginTop: '8px', textAlign: 'center' }}>
+                        {condition.description}
+                      </p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p>No conditions found. Please try again.</p>
+              )}
             </div>
           </section>
 
@@ -103,32 +213,33 @@ function SymptomAnalysis() {
             <div>
               <strong>Important Disclaimer</strong>
               <p>
-                This analysis is for informational purposes only and does not replace professional
-                medical advice, diagnosis, or treatment. AI-generated insights are preliminary and
-                may be inaccurate. Always seek the advice of a qualified healthcare provider with
-                any questions you may have regarding a medical condition.
+                {analysis?.disclaimer || 'This analysis is for informational purposes only and does not replace professional medical advice, diagnosis, or treatment. AI-generated insights are preliminary and may be inaccurate. Always seek the advice of a qualified healthcare provider with any questions you may have regarding a medical condition.'}
               </p>
             </div>
           </div>
 
-          <div className="symptom-results__recommendation">
-            <div className="recommendation-card">
-              <div className="recommendation-card__icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
+          {analysis && analysis.recommendedActions && analysis.recommendedActions.length > 0 && (
+            <div className="symptom-results__recommendation">
+              <div className="recommendation-card">
+                <div className="recommendation-card__icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                </div>
+                <h3>Recommended Actions</h3>
+                <ul style={{ textAlign: 'left', margin: '12px 0' }}>
+                  {analysis.recommendedActions.map((action, index) => (
+                    <li key={index} style={{ marginBottom: '8px', marginLeft: '20px' }}>
+                      {action}
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" className="recommendation-card__btn" onClick={resetAnalysis}>
+                  Start New Analysis
+                </button>
               </div>
-              <h3>Recommendation</h3>
-              <p>
-                We recommend consulting a healthcare professional for an accurate diagnosis and
-                appropriate treatment plan. Share your symptoms, duration, and severity with your
-                doctor for the best care.
-              </p>
-              <button type="button" className="recommendation-card__btn" onClick={resetAnalysis}>
-                Start New Analysis
-              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     )
