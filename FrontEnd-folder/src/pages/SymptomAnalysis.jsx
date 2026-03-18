@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import './SymptomAnalysis.css'
 
 const DURATION_OPTIONS = [
@@ -29,6 +30,9 @@ function SymptomAnalysis() {
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState('')
   const [loadingMessage, setLoadingMessage] = useState('')
+  const [relatedStories, setRelatedStories] = useState([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [relatedError, setRelatedError] = useState('')
   const [visibleSections, setVisibleSections] = useState({
     urgency: false,
     conditions: false,
@@ -66,8 +70,8 @@ function SymptomAnalysis() {
     const messages = [
       'Reading your symptoms...',
 'Identifying possible conditions...',
-'Putting it all together...',
 'Evaluating symptom severity...',
+'Putting it all together...',
 'Preparing recommendations...',
 'Almost done...'
     ]
@@ -75,7 +79,7 @@ function SymptomAnalysis() {
     const messageInterval = setInterval(() => {
       messageIndex = (messageIndex + 1) % messages.length
       setLoadingMessage(messages[messageIndex])
-    }, 2000)
+    }, 2500)
 
     try {
       const response = await fetch('http://localhost:5000/api/symptom-analysis', {
@@ -148,6 +152,310 @@ function SymptomAnalysis() {
     if (step === 3) return formData.severity.length > 0
     return false
   }
+
+  // Fetch related stories based on diagnosed conditions once results are available
+  useEffect(() => {
+    if (!showResults || !analysis || !analysis.possibleConditions || analysis.possibleConditions.length === 0) {
+      setRelatedStories([])
+      return
+    }
+
+    const conditionNames = Array.from(
+      new Set(
+        analysis.possibleConditions
+          .map((c) => (c.name || '').trim().toLowerCase())
+          .filter(Boolean)
+      )
+    )
+
+    if (conditionNames.length === 0) {
+      setRelatedStories([])
+      return
+    }
+
+    const fetchRelated = async () => {
+      try {
+        setRelatedLoading(true)
+        setRelatedError('')
+
+        const response = await fetch('http://localhost:5000/api/stories/')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch stories')
+        }
+
+        const transformedStories = data.stories.map((story) => ({
+          id: story._id,
+          title: story.title,
+          excerpt: story.body.substring(0, 150) + '...',
+          author: story.authorName,
+          date: new Date(story.createdAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }),
+          category: story.diseaseType,
+        }))
+
+        // Fuzzy matching: normalize and check containment or shared words
+        const normalize = (str) =>
+          (str || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean)
+
+        const CATEGORY_SYNONYMS = {
+          'mental health': [
+            'anxiety',
+            'panic',
+            'depression',
+            'stress',
+            'ptsd',
+            'ocd',
+            'bipolar',
+            'schizophrenia',
+            'insomnia',
+            'sleep',
+            'burnout'
+          ],
+          respiratory: [
+            'asthma',
+            'bronchitis',
+            'pneumonia',
+            'copd',
+            'cough',
+            'shortness of breath',
+            'wheezing',
+            'sinusitis',
+            'rhinitis',
+            'cold',
+            'flu'
+          ],
+          digestive: [
+            'acid reflux',
+            'gerd',
+            'gastritis',
+            'ulcer',
+            'ibs',
+            'ibd',
+            'crohn',
+            'colitis',
+            'constipation',
+            'diarrhea',
+            'nausea',
+            'vomiting',
+            'stomach',
+            'abdominal pain'
+          ],
+          cardiovascular: [
+            'hypertension',
+            'high blood pressure',
+            'heart attack',
+            'angina',
+            'arrhythmia',
+            'palpitations',
+            'stroke',
+            'cholesterol',
+            'heart failure',
+            'chest pain'
+          ],
+          neurological: [
+            'migraine',
+            'headache',
+            'seizure',
+            'epilepsy',
+            'parkinson',
+            'alzheimer',
+            'neuropathy',
+            'numbness',
+            'tingling',
+            'dizziness',
+            'vertigo'
+          ],
+          skin: [
+            'eczema',
+            'psoriasis',
+            'acne',
+            'rash',
+            'dermatitis',
+            'hives',
+            'urticaria',
+            'infection',
+            'fungal',
+            'itching',
+            'skin'
+          ],
+          musculoskeletal: [
+            'arthritis',
+            'joint pain',
+            'back pain',
+            'sprain',
+            'strain',
+            'muscle pain',
+            'tendonitis',
+            'tendinitis',
+            'osteoporosis',
+            'sciatica'
+          ],
+          endocrine: [
+            'diabetes',
+            'hypothyroid',
+            'hyperthyroid',
+            'thyroid',
+            'pcos',
+            'hormone',
+            'adrenal',
+            'cushing',
+            'addison'
+          ],
+          reproductive: [
+            'pregnancy',
+            'menstrual',
+            'period',
+            'ovulation',
+            'infertility',
+            'endometriosis',
+            'fibroid',
+            'sti',
+            'std',
+            'vaginitis',
+            'yeast infection'
+          ],
+          urinary: [
+            'uti',
+            'urinary tract',
+            'bladder',
+            'kidney stone',
+            'stones',
+            'cystitis',
+            'urination',
+            'incontinence',
+            'prostate'
+          ],
+          eye: [
+            'conjunctivitis',
+            'pink eye',
+            'dry eye',
+            'glaucoma',
+            'cataract',
+            'vision',
+            'blurred vision',
+            'eye pain',
+            'uveitis'
+          ],
+          ear: [
+            'ear infection',
+            'otitis',
+            'tinnitus',
+            'hearing loss',
+            'vertigo',
+            'ear pain',
+            'wax'
+          ],
+          immune: [
+            'allergy',
+            'allergic',
+            'autoimmune',
+            'lupus',
+            'rheumatoid',
+            'immunodeficiency',
+            'inflammation',
+            'inflammatory'
+          ],
+          'infectious disease': [
+            'infection',
+            'viral',
+            'bacterial',
+            'fungal',
+            'parasite',
+            'covid',
+            'influenza',
+            'flu',
+            'tuberculosis',
+            'hepatitis',
+            'strep'
+          ],
+          nutritional: [
+            'malnutrition',
+            'vitamin deficiency',
+            'iron deficiency',
+            'anemia',
+            'dehydration',
+            'low b12',
+            'folate',
+            'calcium deficiency'
+          ]
+        }
+
+        const isFuzzyMatch = (conditionName, diseaseType) => {
+          const cond = (conditionName || '').toLowerCase().trim()
+          const dis = (diseaseType || '').toLowerCase().trim()
+          if (!cond || !dis) return false
+
+          // Simple contains check either way
+          if (cond.includes(dis) || dis.includes(cond)) return true
+
+          const condWords = normalize(conditionName)
+          const disWords = normalize(diseaseType)
+          if (condWords.length === 0 || disWords.length === 0) return false
+
+          const stopWords = new Set(['disease', 'syndrome', 'disorder', 'condition'])
+          const condSet = new Set(condWords.filter((w) => !stopWords.has(w)))
+          const disSet = new Set(disWords.filter((w) => !stopWords.has(w)))
+
+          let overlap = 0
+          condSet.forEach((w) => {
+            if (disSet.has(w)) overlap += 1
+          })
+
+          if (overlap > 0) return true
+
+          // Category synonym layer: allow broad diseaseType categories to match specific conditions (and vice versa)
+          // This runs only if the existing contains/overlap logic didn't match.
+          const condText = ` ${normalize(conditionName).join(' ')} `
+          const disText = ` ${normalize(diseaseType).join(' ')} `
+
+          for (const [categoryKey, keywords] of Object.entries(CATEGORY_SYNONYMS)) {
+            const cat = categoryKey.toLowerCase()
+
+            const diseaseIsBroadCategory = dis.includes(cat) || disText.includes(` ${cat} `)
+            const conditionIsBroadCategory = cond.includes(cat) || condText.includes(` ${cat} `)
+
+            if (diseaseIsBroadCategory) {
+              if (keywords.some((kw) => cond.includes(kw) || condText.includes(` ${normalize(kw).join(' ')} `))) {
+                return true
+              }
+            }
+
+            if (conditionIsBroadCategory) {
+              if (keywords.some((kw) => dis.includes(kw) || disText.includes(` ${normalize(kw).join(' ')} `))) {
+                return true
+              }
+            }
+          }
+
+          return false
+        }
+
+        const matched = transformedStories.filter((story) => {
+          const diseaseType = story.category || ''
+          return conditionNames.some((condName) => isFuzzyMatch(condName, diseaseType))
+        })
+
+        setRelatedStories(matched.slice(0, 3))
+      } catch (err) {
+        console.error('Error fetching related stories:', err)
+        setRelatedError(err.message || 'Failed to load related stories')
+        setRelatedStories([])
+      } finally {
+        setRelatedLoading(false)
+      }
+    }
+
+    fetchRelated()
+  }, [showResults, analysis])
 
   if (isLoading) {
     return (
@@ -281,6 +589,41 @@ function SymptomAnalysis() {
               </div>
             </div>
           )}
+
+          {/* Related Stories based on diagnosed conditions */}
+          <section className="symptom-results__conditions" style={{ marginTop: '32px' }}>
+            <h2>Related Stories</h2>
+            {relatedLoading && (
+              <p style={{ textAlign: 'center', color: '#666' }}>Finding stories from people with similar conditions...</p>
+            )}
+            {relatedError && !relatedLoading && (
+              <p style={{ textAlign: 'center', color: '#c33' }}>Could not load related stories.</p>
+            )}
+            {!relatedLoading && !relatedError && relatedStories.length > 0 && (
+              <div className="conditions-grid">
+                {relatedStories.map((story) => (
+                  <Link
+                    key={story.id}
+                    to={`/story/${story.id}`}
+                    className="blog-card"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span className="blog-card__category">{story.category}</span>
+                    <h3 className="blog-card__title">{story.title}</h3>
+                    <p className="blog-card__excerpt">{story.excerpt}</p>
+                    <div className="blog-card__meta">
+                      <span className="blog-card__author">{story.author}</span>
+                      <span className="blog-card__meta-dot">·</span>
+                      <span>{story.date}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {!relatedLoading && !relatedError && relatedStories.length === 0 && (
+              <p style={{ textAlign: 'center', color: '#666' }}>No related stories found yet.</p>
+            )}
+          </section>
         </div>
       </div>
     )

@@ -5,15 +5,36 @@ import './Auth.css'
 import './CreateBlog.css'
 
 const DISEASE_CATEGORIES = [
-  'Heart Disease',
-  'Diabetes',
-  'Cancer',
-  'Mental Health',
-  'Respiratory Diseases',
-  'Arthritis',
-  'Neurological Disorders',
-  'Autoimmune Diseases',
-  'Other'
+'Heart Disease',
+'Diabetes',
+'Cancer',
+'Mental Health',
+'Depression',
+'Anxiety',
+'Respiratory Diseases',
+'Asthma',
+'Arthritis',
+'Neurological Disorders',
+'Migraine',
+'Autoimmune Diseases',
+'Skin Disorders',
+'Digestive Disorders',
+'Acid Reflux',
+'Irritable Bowel Syndrome',
+'Thyroid Disorders',
+'Hormonal Disorders',
+'Urinary Disorders',
+'Kidney Disease',
+'Liver Disease',
+'Eye Disorders',
+'Ear Disorders',
+'Infectious Disease',
+'Viral Infection',
+'Bacterial Infection',
+'Nutritional Deficiency',
+'Bone Disorders',
+'Sleep Disorders',
+'Other'
 ]
 
 function CreateBlog() {
