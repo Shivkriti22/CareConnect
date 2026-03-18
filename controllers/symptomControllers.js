@@ -46,19 +46,48 @@ const analyzeSymptoms = async (req, res) => {
       '5': 'Extreme'
     };
 
-    const prompt = `You are a medical symptom analyzer AI. A user has reported the following symptoms:
+    const prompt = `You are a concise medical symptom analyzer. Return ONLY JSON, no text before or after.
 
-Symptoms: ${symptoms}
-Duration: ${duration}
-Severity Level: ${severityMap[severity] || 'Unknown'} (${severity}/5)
+PATIENT REPORT:
+- Symptoms: ${symptoms}
+- Duration: ${duration}
+- Severity: ${severityMap[severity] || 'Unknown'} (${severity}/5)
 
-Based on these symptoms, provide ONLY a JSON object response (no markdown, no code blocks, no explanations). The JSON must include:
-- possibleConditions: Array of objects with name (string), likelihood ("High"|"Medium"|"Low"), and description (string)
-- recommendedActions: Array of strings with actionable recommendations
-- urgencyLevel: One of "Emergency", "Urgent", "Moderate", or "Low"
-- disclaimer: A medical disclaimer string
+OUTPUT THIS JSON STRUCTURE EXACTLY:
+{
+  "possibleConditions": [
+    {
+      "name": "condition name",
+      "likelihood": "High",
+      "description": "one sentence specific to the reported symptoms"
+    },
+    {
+      "name": "condition name",
+      "likelihood": "Medium",
+      "description": "one sentence specific to the reported symptoms"
+    },
+    {
+      "name": "condition name",
+      "likelihood": "Low",
+      "description": "one sentence specific to the reported symptoms"
+    }
+  ],
+  "recommendedActions": [
+    "action 1",
+    "action 2",
+    "action 3"
+  ],
+  "urgencyLevel": "Moderate"
+}
 
-Return ONLY valid JSON, starting with { and ending with }. Do not include markdown formatting.`;
+RULES:
+- possibleConditions: exactly 3 items only
+- likelihood: must be "High", "Medium", or "Low" only
+- description: one sentence, be specific to the reported symptoms
+- recommendedActions: 3-5 specific, practical steps
+- urgencyLevel: "Emergency", "Urgent", "Moderate", or "Low"
+- Start output with { and end with }
+- No markdown, no code blocks, no explanations`;
 
     // Call Ollama API with simple Promise-based timeout
     console.log('>>> Calling Ollama with prompt length:', prompt.length)
@@ -129,8 +158,7 @@ Return ONLY valid JSON, starting with { and ending with }. Do not include markdo
           "Consult a healthcare professional",
           "Ensure Ollama is running and the model is loaded"
         ],
-        urgencyLevel: "Moderate",
-        disclaimer: "This analysis could not be completed properly. Please seek professional medical advice."
+        urgencyLevel: "Moderate"
       };
     }
 
@@ -143,9 +171,6 @@ Return ONLY valid JSON, starting with { and ending with }. Do not include markdo
     }
     if (!analysis.urgencyLevel) {
       analysis.urgencyLevel = "Moderate";
-    }
-    if (!analysis.disclaimer) {
-      analysis.disclaimer = "This analysis is for informational purposes only and does not replace professional medical advice.";
     }
 
     console.log('>>> Sending result to frontend')
