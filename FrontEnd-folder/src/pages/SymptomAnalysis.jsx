@@ -28,6 +28,13 @@ function SymptomAnalysis() {
   const [analysis, setAnalysis] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState('')
+  const [loadingMessage, setLoadingMessage] = useState('')
+  const [visibleSections, setVisibleSections] = useState({
+    urgency: false,
+    conditions: false,
+    actions: false,
+    disclaimer: false
+  })
 
   const updateForm = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -50,9 +57,25 @@ function SymptomAnalysis() {
     console.log('>>> Submit triggered', formData)
     setIsLoading(true)
     setApiError('')
+    setLoadingMessage('Reading your symptoms...')
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 120000) // 120 second timeout
+
+    // Cycle through loading messages
+    const messages = [
+      'Reading your symptoms...',
+'Identifying possible conditions...',
+'Putting it all together...',
+'Evaluating symptom severity...',
+'Preparing recommendations...',
+'Almost done...'
+    ]
+    let messageIndex = 0
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % messages.length
+      setLoadingMessage(messages[messageIndex])
+    }, 2000)
 
     try {
       const response = await fetch('http://localhost:5000/api/symptom-analysis', {
@@ -77,11 +100,22 @@ function SymptomAnalysis() {
         throw new Error(data.message || 'Failed to analyze symptoms')
       }
 
+      // Clear loading message interval
+      clearInterval(messageInterval)
+
       // Set analysis results and show results view
       setAnalysis(data.data)
       setShowResults(true)
+
+      // Reveal sections progressively
+      setTimeout(() => setVisibleSections(prev => ({ ...prev, urgency: true })), 0)
+      setTimeout(() => setVisibleSections(prev => ({ ...prev, conditions: true })), 300)
+      setTimeout(() => setVisibleSections(prev => ({ ...prev, actions: true })), 600)
+      setTimeout(() => setVisibleSections(prev => ({ ...prev, disclaimer: true })), 900)
+
     } catch (error) {
       console.error('>>> Submit error:', error)
+      clearInterval(messageInterval)
       if (error.name === 'AbortError') {
         setApiError('Request timeout. Ollama service may be overloaded. Please try again.')
       } else {
@@ -99,6 +133,13 @@ function SymptomAnalysis() {
     setShowResults(false)
     setAnalysis(null)
     setApiError('')
+    setLoadingMessage('')
+    setVisibleSections({
+      urgency: false,
+      conditions: false,
+      actions: false,
+      disclaimer: false
+    })
   }
 
   const canProceed = () => {
@@ -124,7 +165,7 @@ function SymptomAnalysis() {
 
           <div className="symptom-results__conditions" style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'spin 2s linear infinite' }}>⚙️</div>
-            <p style={{ fontSize: '18px', color: '#666' }}>Processing your information...</p>
+            <p style={{ fontSize: '18px', color: '#666' }}>{loadingMessage || 'Processing your information...'}</p>
           </div>
         </div>
       </div>

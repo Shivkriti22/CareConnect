@@ -97,13 +97,18 @@ RULES:
       body: JSON.stringify({
         model: "gemma3:1b", // Using the installed model
         prompt: prompt,
-        stream: false
+        stream: true,
+        options: {
+          temperature: 0.1,
+          top_p: 0.9,
+          num_predict: 400
+        }
       })
     });
 
     // Create a timeout promise
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Ollama request timeout')), 60000)
+      setTimeout(() => reject(new Error('Ollama request timeout')), 120000)
     );
 
     let ollamaResponse;
@@ -130,9 +135,32 @@ RULES:
       });
     }
 
-    const ollamaData = await ollamaResponse.json();
-    console.log('>>> Ollama raw response:', ollamaData);
-    const modelOutput = ollamaData.response || "";
+    // Read streaming response
+    const reader = ollamaResponse.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n").filter(line => line.trim());
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.response) {
+            fullResponse += parsed.response;
+          }
+        } catch {
+          // skip malformed chunks
+        }
+      }
+    }
+
+    console.log('>>> Ollama raw response:', fullResponse);
+    const modelOutput = fullResponse || "";
 
     // Parse the JSON response from Ollama
     let analysis;
