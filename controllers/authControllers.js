@@ -1,4 +1,5 @@
 const User = require("../models/user");
+const Story = require("../models/story");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -182,9 +183,36 @@ const updateProfile = async (req, res) => {
   }
 };
 
+
+// ================= DELETE ACCOUNT =================
+
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Delete all stories associated with the user
+    await Story.deleteMany({ user: userId });
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Account deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete account error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting account"
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
-  updateProfile
+  updateProfile,
+  deleteAccount
 };

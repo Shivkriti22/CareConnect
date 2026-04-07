@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import StoryReactions from '../components/StoryReactions'
 import './Blogs.css'
 
 function Blogs() {
@@ -62,7 +63,8 @@ function Blogs() {
           readTime: '5 min read',
           tags: [story.diseaseType.toLowerCase()],
           content: [story.body],
-          userId: story.user // this is the owner id
+          userId: story.user, // this is the owner id
+          reactions: story.reactions // Add reactions data
         }))
 
         setAllBlogs(transformedStories)
@@ -164,6 +166,9 @@ function Blogs() {
                   ))}
                 </div>
               </Link>
+              <div className="blog-card__reactions">
+                <StoryReactions storyId={blog.id} initialReactions={blog.reactions} />
+              </div>
               {isAuthenticated && user && user.id === blog.userId && (
                 <div className="blog-card-actions">
                   <Link to={`/blogs/edit/${blog.id}`} className="blog-card-action-btn">Edit</Link>

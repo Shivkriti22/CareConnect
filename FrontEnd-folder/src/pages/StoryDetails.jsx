@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import StoryReactions from '../components/StoryReactions'
 import './StoryDetails.css'
 
 function StoryDetails() {
@@ -115,6 +116,11 @@ function StoryDetails() {
         </header>
         <div className="story-details__content">
           <p className="story-details__body">{story.body}</p>
+        </div>
+
+        {/* Reactions Component */}
+        <div className="story-details__reactions">
+          <StoryReactions storyId={id} initialReactions={story.reactions} />
         </div>
       </article>
     </div>

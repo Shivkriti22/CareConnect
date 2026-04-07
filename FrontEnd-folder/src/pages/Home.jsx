@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import StoryReactions from '../components/StoryReactions'
 import './Home.css'
 
 function Home() {
@@ -32,6 +33,7 @@ function Home() {
           readTime: '5 min read',
           content: story.body,
           createdAt: story.createdAt, // Keep original date for sorting
+          reactions: story.reactions // Add reactions data
         }))
 
         // Sort by createdAt in descending order (newest first) and take only the latest 3
@@ -162,20 +164,25 @@ function Home() {
             <p style={{ gridColumn: '1 / -1', textAlign: 'center' }}>No featured stories yet.</p>
           )}
           {!loading && featuredBlogs.map((blog) => (
-            <Link to={`/story/${blog.id}`} key={blog.id} className="blog-card">
-              <div className="blog-card__content">
-                <span className="blog-card__category">{blog.category}</span>
-                <h3 className="blog-card__title">{blog.title}</h3>
-                <p className="blog-card__excerpt">{blog.excerpt}</p>
-                <div className="blog-card__meta">
-                  <span>{blog.author}</span>
-                  <span className="blog-card__meta-dot">·</span>
-                  <span>{blog.date}</span>
-                  <span className="blog-card__meta-dot">·</span>
-                  <span>{blog.readTime}</span>
+            <div key={blog.id} className="featured-blog-card">
+              <Link to={`/story/${blog.id}`} className="blog-card">
+                <div className="blog-card__content">
+                  <span className="blog-card__category">{blog.category}</span>
+                  <h3 className="blog-card__title">{blog.title}</h3>
+                  <p className="blog-card__excerpt">{blog.excerpt}</p>
+                  <div className="blog-card__meta">
+                    <span>{blog.author}</span>
+                    <span className="blog-card__meta-dot">·</span>
+                    <span>{blog.date}</span>
+                    <span className="blog-card__meta-dot">·</span>
+                    <span>{blog.readTime}</span>
+                  </div>
                 </div>
+              </Link>
+              <div className="featured-blog-card__reactions">
+                <StoryReactions storyId={blog.id} initialReactions={blog.reactions} />
               </div>
-            </Link>
+            </div>
           ))}
         </div>
         <div className="featured__cta">

@@ -108,6 +108,28 @@
   color: var(--color-text-light);
 }
 
+/* Age input */
+.symptom-step__input {
+  width: 100%;
+  padding: var(--space-4);
+  font-size: var(--font-size-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color 0.2s ease;
+}
+
+.symptom-step__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.symptom-step__input::placeholder {
+  color: var(--color-text-light);
+}
+
 /* Duration options */
 .symptom-step__options {
   display: flex;

@@ -1,0 +1,158 @@
+.story-reactions {
+  margin-top: var(--space-3, 12px);
+  margin-bottom: 0;
+}
+
+.story-reactions__error {
+  color: var(--color-accent-red-fg, #c33);
+  font-size: var(--font-size-xs, 12px);
+  margin-bottom: var(--space-2, 8px);
+  text-align: center;
+}
+
+.story-reactions__container {
+  display: flex;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.story-reactions__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  background-color: var(--color-bg-muted, #f5f5f5);
+  border: 0.5px solid var(--color-border, #e0e0e0);
+  border-radius: var(--radius-full, 24px);
+  cursor: pointer;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 500;
+  color: var(--color-text-muted, #666);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-height: auto;
+  height: 28px;
+}
+
+.story-reactions__button:hover:not(:disabled) {
+  border-color: var(--color-primary, #0d9488);
+  background-color: var(--color-primary-subtle, #f0fdf9);
+  color: var(--color-primary, #0d9488);
+  transform: scale(1.05);
+}
+
+.story-reactions__button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.story-reactions__button--active {
+  border-color: var(--color-primary, #0d9488);
+  background-color: var(--color-primary-subtle, #f0fdf9);
+  color: var(--color-primary, #0d9488);
+  font-weight: 600;
+}
+
+.story-reactions__button--animating {
+  animation: reactionBounce 0.3s ease;
+}
+
+.story-reactions__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Emoji enlargement for visual feedback */
+.story-reactions__emoji {
+  font-size: var(--font-size-sm, 14px);
+  display: inline-block;
+}
+
+.story-reactions__button--animating .story-reactions__emoji {
+  animation: emojiPulse 0.4s ease;
+}
+
+.story-reactions__label {
+  display: none;
+}
+
+.story-reactions__count {
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 600;
+  min-width: auto;
+  text-align: right;
+}
+
+/* Animations */
+@keyframes reactionBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes emojiPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Responsive design */
+@media (min-width: 640px) {
+  .story-reactions__label {
+    display: inline;
+  }
+
+  .story-reactions__count {
+    min-width: auto;
+  }
+}
+
+/* Light mode specific - ensure good contrast */
+@media (prefers-color-scheme: light) {
+  .story-reactions__button {
+    background-color: #f9f9f9;
+    border-color: #e5e5e5;
+    color: #666;
+  }
+
+  .story-reactions__button:hover:not(:disabled) {
+    background-color: #f0fdf9;
+  }
+
+  .story-reactions__button--active {
+    background-color: #f0fdf9;
+  }
+}
+
+/* Dark mode specific */
+@media (prefers-color-scheme: dark) {
+  .story-reactions__button {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+  }
+
+  .story-reactions__button:hover:not(:disabled) {
+    background-color: #0d9488;
+    border-color: #0d9488;
+    color: #fff;
+  }
+
+  .story-reactions__button--active {
+    background-color: #0d9488;
+    border-color: #0d9488;
+    color: #fff;
+  }
+}

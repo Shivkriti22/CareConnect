@@ -93,3 +93,10 @@
   margin: 0;
   white-space: pre-wrap;
 }
+
+.story-details__reactions {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  padding-left: 0;
+  padding-right: 0;
+}

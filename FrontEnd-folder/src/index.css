@@ -204,16 +204,13 @@ select:focus-visible,
 
 /* Shared blog card styles (consolidated from Home.css and Blogs.css) */
 .blog-card {
-  background-color: var(--color-bg);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 
-.blog-card:hover {
-  border-color: var(--color-primary-muted);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
+.blog-card:focus-visible {
+  outline-offset: 2px;
 }
 
 .blog-card__category {

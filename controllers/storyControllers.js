@@ -224,6 +224,109 @@ const deleteStory = async (req, res) => {
   }
 };
 
+
+// ADD/REMOVE REACTION
+const toggleReaction = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const { reactionType } = req.body;
+    const userId = req.user.id;
+
+    // Validate reaction type
+    const validReactions = ['helpful', 'relatable', 'insightful'];
+    if (!validReactions.includes(reactionType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid reaction type"
+      });
+    }
+
+    const story = await Story.findById(storyId);
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found"
+      });
+    }
+
+    // Initialize reactions if they don't exist
+    if (!story.reactions) {
+      story.reactions = {
+        helpful: { count: 0, users: [] },
+        relatable: { count: 0, users: [] },
+        insightful: { count: 0, users: [] }
+      };
+    }
+
+    const userIdString = userId.toString();
+    const reactionUsers = story.reactions[reactionType].users || [];
+    const userIndex = reactionUsers.findIndex(id => id.toString() === userIdString);
+
+    if (userIndex > -1) {
+      // Remove reaction
+      story.reactions[reactionType].users.splice(userIndex, 1);
+      story.reactions[reactionType].count = Math.max(0, story.reactions[reactionType].count - 1);
+    } else {
+      // Add reaction
+      story.reactions[reactionType].users.push(userId);
+      story.reactions[reactionType].count += 1;
+    }
+
+    await story.save();
+
+    res.status(200).json({
+      success: true,
+      message: userIndex > -1 ? "Reaction removed" : "Reaction added",
+      reactions: story.reactions,
+      hasReacted: userIndex === -1
+    });
+  } catch (error) {
+    console.error('Reaction error:', error);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
+// GET REACTIONS FOR A STORY
+const getReactions = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    
+    const story = await Story.findById(storyId).select('reactions');
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found"
+      });
+    }
+
+    let userReaction = null;
+    if (req.user) {
+      const userId = req.user.id.toString();
+      for (const [reactionType, reactionData] of Object.entries(story.reactions || {})) {
+        if (reactionData.users && reactionData.users.some(id => id.toString() === userId)) {
+          userReaction = reactionType;
+          break;
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      reactions: story.reactions,
+      userReaction
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 module.exports = {
   createStory,
   getAllStories,
@@ -231,5 +334,7 @@ module.exports = {
   getMyStories,
   getStoryById,
   updateStory,
-  deleteStory
+  deleteStory,
+  toggleReaction,
+  getReactions
 };

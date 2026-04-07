@@ -24,6 +24,8 @@ function SymptomAnalysis() {
     symptoms: '',
     duration: '',
     severity: '',
+    age: '',
+    gender: '',
   })
   const [showResults, setShowResults] = useState(false)
   const [analysis, setAnalysis] = useState(null)
@@ -45,7 +47,7 @@ function SymptomAnalysis() {
   }
 
   const nextStep = () => {
-    if (step < 3) setStep(step + 1)
+    if (step < 5) setStep(step + 1)
     else {
       // Submit form and call Ollama API
       submitAnalysis()
@@ -91,6 +93,8 @@ function SymptomAnalysis() {
           symptoms: formData.symptoms,
           duration: formData.duration,
           severity: formData.severity,
+          age: parseInt(formData.age),
+          gender: formData.gender,
         }),
         signal: controller.signal
       })
@@ -133,7 +137,7 @@ function SymptomAnalysis() {
 
   const resetAnalysis = () => {
     setStep(1)
-    setFormData({ symptoms: '', duration: '', severity: '' })
+    setFormData({ symptoms: '', duration: '', severity: '', age: '', gender: '' })
     setShowResults(false)
     setAnalysis(null)
     setApiError('')
@@ -150,6 +154,8 @@ function SymptomAnalysis() {
     if (step === 1) return formData.symptoms.trim().length > 0
     if (step === 2) return formData.duration.length > 0
     if (step === 3) return formData.severity.length > 0
+    if (step === 4) return formData.age && formData.age > 0 && formData.age < 150
+    if (step === 5) return formData.gender.length > 0
     return false
   }
 
@@ -661,7 +667,7 @@ function SymptomAnalysis() {
 
         <div className="symptom-steps">
           <div className="symptom-steps__progress">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div
                 key={s}
                 className={`symptom-steps__dot ${step >= s ? 'symptom-steps__dot--active' : ''}`}
@@ -732,6 +738,43 @@ function SymptomAnalysis() {
               </div>
             )}
 
+            {step === 4 && (
+              <div className="symptom-step__content">
+                <h2>What Is Your Age?</h2>
+                <p className="symptom-step__hint">Enter your age in years. This helps improve symptom analysis.</p>
+                <input
+                  type="number"
+                  min="1"
+                  max="150"
+                  placeholder="Enter your age..."
+                  value={formData.age}
+                  onChange={(e) => updateForm('age', e.target.value)}
+                  className="symptom-step__input"
+                />
+              </div>
+            )}
+
+            {step === 5 && (
+              <div className="symptom-step__content">
+                <h2>What Is Your Gender?</h2>
+                <p className="symptom-step__hint">Select your gender. This helps tailor the analysis.</p>
+                <div className="symptom-step__options">
+                  {['Male', 'Female', 'Other'].map((genderOption) => (
+                    <label key={genderOption} className="symptom-step__option">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={genderOption}
+                        checked={formData.gender === genderOption}
+                        onChange={(e) => updateForm('gender', e.target.value)}
+                      />
+                      <span className="symptom-step__option-label">{genderOption}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="symptom-step__actions">
               {step > 1 && (
                 <button type="button" className="symptom-step__btn symptom-step__btn--secondary" onClick={prevStep}>
@@ -744,7 +787,7 @@ function SymptomAnalysis() {
                 onClick={nextStep}
                 disabled={!canProceed()}
               >
-                {step < 3 ? 'Continue' : 'Get Analysis'}
+                {step < 5 ? 'Continue' : 'Get Analysis'}
               </button>
             </div>
           </div>

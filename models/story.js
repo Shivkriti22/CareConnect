@@ -31,6 +31,45 @@ const storySchema = new mongoose.Schema(
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
+  },
+
+  reactions: {
+    helpful: {
+      count: {
+        type: Number,
+        default: 0
+      },
+      users: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      ]
+    },
+    relatable: {
+      count: {
+        type: Number,
+        default: 0
+      },
+      users: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      ]
+    },
+    insightful: {
+      count: {
+        type: Number,
+        default: 0
+      },
+      users: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      ]
+    }
   }
 
 },

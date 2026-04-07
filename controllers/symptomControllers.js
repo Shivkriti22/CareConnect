@@ -6,12 +6,14 @@
 const analyzeSymptoms = async (req, res) => {
   console.log('>>> Symptom analysis route hit')
   try {
-    const { symptoms, duration, severity } = req.body;
+    const { symptoms, duration, severity, age, gender } = req.body;
 
     console.log('>>> Request body:', req.body)
     console.log('>>> Symptoms:', symptoms)
     console.log('>>> Duration:', duration)
     console.log('>>> Severity:', severity)
+    console.log('>>> Age:', age)
+    console.log('>>> Gender:', gender)
 
     // Validate input
     if (!symptoms || !symptoms.trim()) {
@@ -36,6 +38,20 @@ const analyzeSymptoms = async (req, res) => {
       });
     }
 
+    if (!age || isNaN(age) || age < 1 || age > 150) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid age is required (1-150)"
+      });
+    }
+
+    if (!gender || !['Male', 'Female', 'Other'].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid gender is required (Male, Female, Other)"
+      });
+    }
+
     // Build structured medical prompt for Ollama
     // The prompt guides the model to return only JSON without markdown or explanations
     const severityMap = {
@@ -48,10 +64,14 @@ const analyzeSymptoms = async (req, res) => {
 
     const prompt = `You are a concise medical symptom analyzer. Return ONLY JSON, no text before or after.
 
-PATIENT REPORT:
+PATIENT INFORMATION:
+- Age: ${age} years old
+- Gender: ${gender}
 - Symptoms: ${symptoms}
 - Duration: ${duration}
 - Severity: ${severityMap[severity] || 'Unknown'} (${severity}/5)
+
+Consider the patient's age and gender when analyzing symptoms. Some conditions are more common in certain age groups or genders.
 
 OUTPUT THIS JSON STRUCTURE EXACTLY:
 {
@@ -59,17 +79,17 @@ OUTPUT THIS JSON STRUCTURE EXACTLY:
     {
       "name": "condition name",
       "likelihood": "High",
-      "description": "one sentence specific to the reported symptoms"
+      "description": "one sentence specific to the reported symptoms, considering age and gender"
     },
     {
       "name": "condition name",
       "likelihood": "Medium",
-      "description": "one sentence specific to the reported symptoms"
+      "description": "one sentence specific to the reported symptoms, considering age and gender"
     },
     {
       "name": "condition name",
       "likelihood": "Low",
-      "description": "one sentence specific to the reported symptoms"
+      "description": "one sentence specific to the reported symptoms, considering age and gender"
     }
   ],
   "recommendedActions": [
