@@ -461,20 +461,37 @@ function SymptomAnalysis() {
     return (
       <div className="symptom-analysis">
         <div className="symptom-analysis__container">
-          <header className="symptom-results__header">
-            <div className="symptom-results__icon" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-            <h1>Analyzing Your Symptoms</h1>
-            <p>Please wait while the AI analyzes your symptoms...</p>
+          <header className="skeleton-header">
+            <div className="skeleton-icon skeleton"></div>
+            <div className="skeleton-title skeleton"></div>
+            <div className="skeleton-subtitle skeleton"></div>
           </header>
 
-          <div className="symptom-results__conditions" style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'spin 2s linear infinite' }}>⚙️</div>
-            <p style={{ fontSize: '18px', color: '#666' }}>{loadingMessage || 'Processing your information...'}</p>
-          </div>
+          {/* Possible Conditions Section */}
+          <section className="skeleton-section">
+            <div className="skeleton-section-title skeleton"></div>
+            <div className="skeleton-grid">
+              {[1, 2, 3].map((index) => (
+                <div key={index} className="skeleton-card">
+                  <div className="skeleton-card-badge skeleton"></div>
+                  <div className="skeleton-card-icon skeleton"></div>
+                  <div className="skeleton-card-title skeleton"></div>
+                  <div className="skeleton-card-text skeleton"></div>
+                  <div className="skeleton-card-text skeleton"></div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Recommended Actions Section */}
+          <section className="skeleton-recommendation">
+            <div className="skeleton-recommendation-icon skeleton"></div>
+            <div className="skeleton-recommendation-title skeleton"></div>
+            <div className="skeleton-item skeleton"></div>
+            <div className="skeleton-item skeleton"></div>
+            <div className="skeleton-item skeleton"></div>
+            <div className="skeleton-button skeleton"></div>
+          </section>
         </div>
       </div>
     )
