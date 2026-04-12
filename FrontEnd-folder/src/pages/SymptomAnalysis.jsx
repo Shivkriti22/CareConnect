@@ -42,6 +42,53 @@ function SymptomAnalysis() {
     disclaimer: false
   })
 
+  // Load persisted analysis results from localStorage on component mount
+  useEffect(() => {
+    try {
+      const persistedShowResults = localStorage.getItem('symptom-showResults')
+      const persistedAnalysis = localStorage.getItem('symptom-analysis')
+      const persistedRelatedStories = localStorage.getItem('symptom-relatedStories')
+
+      if (persistedShowResults === 'true' && persistedAnalysis) {
+        setShowResults(true)
+        setAnalysis(JSON.parse(persistedAnalysis))
+        if (persistedRelatedStories) {
+          setRelatedStories(JSON.parse(persistedRelatedStories))
+        }
+        // Reveal sections progressively
+        setTimeout(() => setVisibleSections(prev => ({ ...prev, urgency: true })), 0)
+        setTimeout(() => setVisibleSections(prev => ({ ...prev, conditions: true })), 300)
+        setTimeout(() => setVisibleSections(prev => ({ ...prev, actions: true })), 600)
+        setTimeout(() => setVisibleSections(prev => ({ ...prev, disclaimer: true })), 900)
+      }
+    } catch (err) {
+      console.error('Error loading persisted analysis:', err)
+    }
+  }, [])
+
+  // Persist analysis results to localStorage whenever they change
+  useEffect(() => {
+    if (showResults && analysis) {
+      try {
+        localStorage.setItem('symptom-showResults', 'true')
+        localStorage.setItem('symptom-analysis', JSON.stringify(analysis))
+      } catch (err) {
+        console.error('Error saving analysis to localStorage:', err)
+      }
+    }
+  }, [showResults, analysis])
+
+  // Persist related stories to localStorage whenever they change
+  useEffect(() => {
+    if (relatedStories.length > 0) {
+      try {
+        localStorage.setItem('symptom-relatedStories', JSON.stringify(relatedStories))
+      } catch (err) {
+        console.error('Error saving related stories to localStorage:', err)
+      }
+    }
+  }, [relatedStories])
+
   const updateForm = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -142,12 +189,21 @@ function SymptomAnalysis() {
     setAnalysis(null)
     setApiError('')
     setLoadingMessage('')
+    setRelatedStories([])
     setVisibleSections({
       urgency: false,
       conditions: false,
       actions: false,
       disclaimer: false
     })
+    // Clear persisted data from localStorage
+    try {
+      localStorage.removeItem('symptom-showResults')
+      localStorage.removeItem('symptom-analysis')
+      localStorage.removeItem('symptom-relatedStories')
+    } catch (err) {
+      console.error('Error clearing persisted analysis:', err)
+    }
   }
 
   const canProceed = () => {
@@ -645,6 +701,50 @@ function SymptomAnalysis() {
             )}
             {!relatedLoading && !relatedError && relatedStories.length === 0 && (
               <p style={{ textAlign: 'center', color: '#666' }}>No related stories found yet.</p>
+            )}
+          </section>
+
+          {/* Find People Like Me section - reusing authors from related stories */}
+          <section className="symptom-results__conditions" style={{ marginTop: '32px' }}>
+            <h2>Find People Like Me</h2>
+            {relatedLoading ? (
+              <p style={{ textAlign: 'center', color: '#666' }}>Loading similar people...</p>
+            ) : relatedStories.length > 0 ? (
+              (() => {
+                // Extract unique authors from relatedStories
+                const uniqueAuthors = Array.from(
+                  new Map(
+                    relatedStories
+                      .map((story) => [story.author, story.author])
+                      .filter(([author]) => author && author.trim())
+                  ).values()
+                );
+
+                return uniqueAuthors.length > 0 ? (
+                  <div className="similar-users-container">
+                    {uniqueAuthors.map((author) => (
+                      <Link
+                        key={author}
+                        to={`/profile/${author}`}
+                        className="similar-user-card"
+                        style={{ textDecoration: 'none' }}
+                        title={author}
+                      >
+                        <div className="similar-user-avatar">{author.charAt(0).toUpperCase()}</div>
+                        <p className="similar-user-name">{author}</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                    No similar users found. Be the first to share your experience!
+                  </p>
+                );
+              })()
+            ) : (
+              <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                No similar users found. Be the first to share your experience!
+              </p>
             )}
           </section>
         </div>
