@@ -9,6 +9,7 @@ function AuthorProfile() {
   const [blogs, setBlogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showChat, setShowChat] = useState(false)
 
   useEffect(() => {
     const fetchAuthorData = async () => {
@@ -111,7 +112,7 @@ function AuthorProfile() {
                   </span>
                 </div>
               </div>
-              <button className="author-profile-connect-btn">
+              <button className="author-profile-connect-btn" onClick={() => setShowChat(true)}>
                 Connect
               </button>
             </div>
@@ -145,6 +146,42 @@ function AuthorProfile() {
           )}
         </div>
       </div>
+
+      {/* Chat Panel */}
+      {showChat && (
+        <div className="author-profile-chat-overlay">
+          <div className="author-profile-chat-panel">
+            {/* Chat Header */}
+            <div className="author-profile-chat-header">
+              <h3 className="author-profile-chat-title">{author.name}</h3>
+              <button
+                className="author-profile-chat-close"
+                onClick={() => setShowChat(false)}
+                aria-label="Close chat"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="author-profile-chat-messages">
+              <p className="author-profile-chat-empty">Start a conversation...</p>
+            </div>
+
+            {/* Input Area */}
+            <div className="author-profile-chat-input-form">
+              <input
+                type="text"
+                className="author-profile-chat-input"
+                placeholder="Type a message..."
+              />
+              <button className="author-profile-chat-send-btn">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
