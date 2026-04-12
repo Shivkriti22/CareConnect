@@ -148,9 +148,21 @@
   margin-bottom: var(--space-3);
 }
 
-.blog-card__author {
+.blog-card__author,
+.blog-card__author-link {
   font-weight: 500;
   color: var(--color-text-muted);
+}
+
+.blog-card__author-link {
+  text-decoration: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.blog-card__author-link:hover {
+  color: var(--color-primary-hover);
 }
 
 .blog-card__meta-dot {

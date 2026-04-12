@@ -372,6 +372,14 @@ setFormData({
             </div>
           )}
         </section>
+
+        {/* Connected Users */}
+        <section className="profile__section">
+          <h2>Connected Users</h2>
+          <div className="profile__empty">
+            <p>No connections yet</p>
+          </div>
+        </section>
       </div>
     </div>
   )

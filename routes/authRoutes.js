@@ -6,7 +6,8 @@ const {
   loginUser,
   logoutUser,
   updateProfile,
-  deleteAccount
+  deleteAccount,
+  getUserById
 } = require("../controllers/authControllers");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -17,5 +18,6 @@ router.post("/logout", logoutUser);
 
 router.put("/update-profile", authMiddleware, updateProfile);
 router.delete("/delete-account", authMiddleware, deleteAccount);
+router.get("/user/:id", getUserById);
 
 module.exports = router;

@@ -10,7 +10,8 @@ const {
   updateStory,
   deleteStory,
   toggleReaction,
-  getReactions
+  getReactions,
+  getStoriesByUserId
 } = require("../controllers/storyControllers");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -20,6 +21,8 @@ router.post("/create", authMiddleware, createStory);
 router.get("/", getAllStories);
 
 router.get("/featured", getFeaturedStories);
+
+router.get("/user/:userId", getStoriesByUserId);
 
 router.get("/my-stories", authMiddleware, getMyStories);
 

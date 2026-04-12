@@ -154,7 +154,7 @@ function Blogs() {
                 <h3 className="blog-card__title">{blog.title}</h3>
                 <p className="blog-card__excerpt">{blog.excerpt}</p>
                 <div className="blog-card__meta">
-                  <span className="blog-card__author">{blog.author}</span>
+                  <Link to={`/author/${blog.userId}`} className="blog-card__author-link">{blog.author}</Link>
                   <span className="blog-card__meta-dot">·</span>
                   <span>{blog.readTime}</span>
                 </div>

@@ -327,6 +327,26 @@ const getReactions = async (req, res) => {
   }
 };
 
+
+// GET STORIES BY USER ID
+const getStoriesByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const stories = await Story.find({ user: userId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      stories
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 module.exports = {
   createStory,
   getAllStories,
@@ -336,5 +356,6 @@ module.exports = {
   updateStory,
   deleteStory,
   toggleReaction,
-  getReactions
+  getReactions,
+  getStoriesByUserId
 };

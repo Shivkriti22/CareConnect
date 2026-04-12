@@ -209,10 +209,41 @@ const deleteAccount = async (req, res) => {
   }
 };
 
+
+// ================= GET USER BY ID =================
+
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User retrieved successfully",
+      data: user
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching user"
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   updateProfile,
-  deleteAccount
+  deleteAccount,
+  getUserById
 };

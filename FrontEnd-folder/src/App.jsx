@@ -8,6 +8,7 @@ import SymptomAnalysis from './pages/SymptomAnalysis'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Profile from './pages/Profile'
+import AuthorProfile from './pages/AuthorProfile'
 import './App.css'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="blogs/edit/:id" element={<CreateBlog />} />
         <Route path="story/:id" element={<StoryDetails />} />
         <Route path="symptom-analysis" element={<SymptomAnalysis />} />
+        <Route path="author/:id" element={<AuthorProfile />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
         <Route path="profile" element={<Profile />} />

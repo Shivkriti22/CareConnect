@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import StoryReactions from '../components/StoryReactions'
@@ -101,7 +101,7 @@ function StoryDetails() {
             </div>
           )}
           <div className="story-details__meta">
-            <span className="story-details__author">By {story.authorName}</span>
+            <Link to={`/author/${story.user}`} className="story-details__author-link">By {story.authorName}</Link>
             <span className="story-details__separator">·</span>
             <span className="story-details__category">{story.diseaseType}</span>
             <span className="story-details__separator">·</span>
