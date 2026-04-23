@@ -16,6 +16,34 @@ function Profile() {
   const [editError, setEditError] = useState('')
   const [editSuccess, setEditSuccess] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [connectedUsers, setConnectedUsers] = useState([])
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactsError, setContactsError] = useState('')
+  const [activeChatUser, setActiveChatUser] = useState(null)
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatError, setChatError] = useState('')
+  const [chatInput, setChatInput] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  const [requestsError, setRequestsError] = useState('')
+  const [requestActionLoadingId, setRequestActionLoadingId] = useState(null)
+
+  const renderMessageTicks = (msg, isMine) => {
+    if (!isMine) return null
+
+    const isRead = Boolean(msg.readAt)
+    const isDelivered = Boolean(msg.deliveredAt)
+    const tick = isDelivered || isRead ? '✓✓' : '✓'
+    const tickColor = isRead ? '#1d9bf0' : '#8f97a3'
+
+    return (
+      <span style={{ marginLeft: '6px', color: tickColor, fontWeight: 700, fontSize: '11px' }}>
+        {tick}
+      </span>
+    )
+  }
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -74,6 +102,166 @@ function Profile() {
 
     fetchAuthoredStories()
   }, [isAuthenticated, user])
+
+  const fetchContacts = async () => {
+    if (!isAuthenticated || !user) return
+
+    setContactsLoading(true)
+    setContactsError('')
+
+    try {
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch('http://localhost:5000/api/chat/contacts', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load connected users')
+      }
+
+      setConnectedUsers(data.contacts || [])
+    } catch (err) {
+      setContactsError(err.message || 'Failed to load connected users')
+    } finally {
+      setContactsLoading(false)
+    }
+  }
+
+  const fetchPendingRequests = async () => {
+    if (!isAuthenticated || !user) return
+
+    setRequestsLoading(true)
+    setRequestsError('')
+
+    try {
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch('http://localhost:5000/api/connections/requests/received', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load connection requests')
+      }
+
+      setPendingRequests(data.requests || [])
+    } catch (err) {
+      setRequestsError(err.message || 'Failed to load connection requests')
+    } finally {
+      setRequestsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchContacts()
+    fetchPendingRequests()
+  }, [isAuthenticated, user])
+
+  const handleRequestAction = async (requestId, action) => {
+    try {
+      setRequestActionLoadingId(requestId)
+      setRequestsError('')
+
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch(`http://localhost:5000/api/connections/requests/${requestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action })
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to ${action} request`)
+      }
+
+      setPendingRequests((prev) => prev.filter((item) => item.requestId !== requestId))
+      fetchContacts()
+    } catch (err) {
+      setRequestsError(err.message || `Failed to ${action} request`)
+    } finally {
+      setRequestActionLoadingId(null)
+    }
+  }
+
+  const fetchConversation = async (otherUserId) => {
+    if (!isAuthenticated || !otherUserId) return
+
+    setChatLoading(true)
+    setChatError('')
+
+    try {
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch(`http://localhost:5000/api/chat/${otherUserId}/messages`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load chat messages')
+      }
+
+      setChatMessages(data.messages || [])
+    } catch (err) {
+      setChatError(err.message || 'Failed to load chat messages')
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!activeChatUser) return
+
+    fetchConversation(activeChatUser.userId)
+
+    const intervalId = setInterval(() => {
+      fetchConversation(activeChatUser.userId)
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [activeChatUser])
+
+  const handleSendMessage = async () => {
+    const content = chatInput.trim()
+    if (!activeChatUser || !content) return
+
+    setSendingMessage(true)
+    setChatError('')
+
+    try {
+      const token = localStorage.getItem('careconnect-token')
+      const response = await fetch(`http://localhost:5000/api/chat/${activeChatUser.userId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ content })
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message')
+      }
+
+      setChatMessages((prev) => [...prev, data.data])
+      setChatInput('')
+      fetchContacts()
+    } catch (err) {
+      setChatError(err.message || 'Failed to send message')
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   const handleEditClick = () => {
     setIsEditMode(true)
@@ -375,12 +563,151 @@ setFormData({
 
         {/* Connected Users */}
         <section className="profile__section">
+          <h2>Connection Requests</h2>
+          {requestsLoading && <div className="profile__empty"><p>Loading requests...</p></div>}
+          {requestsError && <div className="profile__delete-error">{requestsError}</div>}
+          {!requestsLoading && !requestsError && pendingRequests.length === 0 && (
+            <div className="profile__empty"><p>No pending requests</p></div>
+          )}
+          {!requestsLoading && pendingRequests.length > 0 && (
+            <div className="profile__grid" style={{ marginBottom: '20px' }}>
+              {pendingRequests.map((request) => (
+                <div key={request.requestId} className="profile__card-wrapper">
+                  <div className="profile__card">
+                    <h3 className="profile__card-title">{request.name}</h3>
+                    <p className="profile__card-excerpt">{request.email}</p>
+                    <span className="profile__card-meta">
+                      Request sent {new Date(request.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="profile__card-actions">
+                    <button
+                      type="button"
+                      className="profile__card-action-btn"
+                      onClick={() => handleRequestAction(request.requestId, 'accept')}
+                      disabled={requestActionLoadingId === request.requestId}
+                    >
+                      {requestActionLoadingId === request.requestId ? 'Working...' : 'Accept'}
+                    </button>
+                    <button
+                      type="button"
+                      className="profile__card-action-btn profile__card-action-btn--delete"
+                      onClick={() => handleRequestAction(request.requestId, 'decline')}
+                      disabled={requestActionLoadingId === request.requestId}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <h2>Connected Users</h2>
-          <div className="profile__empty">
-            <p>No connections yet</p>
-          </div>
+          {contactsLoading && <div className="profile__empty"><p>Loading connected users...</p></div>}
+          {contactsError && <div className="profile__delete-error">{contactsError}</div>}
+
+          {!contactsLoading && !contactsError && connectedUsers.length === 0 && (
+            <div className="profile__empty">
+              <p>No connections yet</p>
+            </div>
+          )}
+
+          {!contactsLoading && connectedUsers.length > 0 && (
+            <div className="profile__grid">
+              {connectedUsers.map((contact) => (
+                <button
+                  key={contact.userId}
+                  type="button"
+                  className="profile__card"
+                  style={{ textAlign: 'left', cursor: 'pointer', background: activeChatUser?.userId === contact.userId ? 'rgba(0, 212, 170, 0.08)' : undefined }}
+                  onClick={() => setActiveChatUser(contact)}
+                >
+                  <h3 className="profile__card-title">{contact.name}</h3>
+                  <p className="profile__card-excerpt">{contact.lastMessage}</p>
+                  <span className="profile__card-meta">
+                    {new Date(contact.lastMessageAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       </div>
+
+      {activeChatUser && (
+        <div className="profile-chat-overlay">
+          <div className="profile-chat-panel">
+            <div className="profile-chat-header">
+              <h3 className="profile-chat-title">{activeChatUser.name}</h3>
+              <button
+                className="profile-chat-close"
+                onClick={() => setActiveChatUser(null)}
+                aria-label="Close chat"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="profile-chat-messages">
+              {chatError && <div className="profile__delete-error">{chatError}</div>}
+              {chatLoading && chatMessages.length === 0 && <p className="profile-chat-empty">Loading messages...</p>}
+              {!chatLoading && chatMessages.length === 0 && <p className="profile-chat-empty">No messages yet.</p>}
+
+              {chatMessages.map((msg) => {
+                const isMine = String(msg.sender) === String(user?.id)
+                return (
+                  <div
+                    key={msg._id}
+                    style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start', marginBottom: '10px' }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: '75%',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: isMine ? '#cde9b8' : '#f1f1f1',
+                        color: '#111',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <div>{msg.content}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {renderMessageTicks(msg, isMine)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="profile-chat-input-form">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }
+                }}
+                placeholder="Type a message..."
+                className="profile-chat-input"
+              />
+              <button
+                type="button"
+                className="profile-chat-send-btn"
+                onClick={handleSendMessage}
+                disabled={sendingMessage || !chatInput.trim()}
+              >
+                {sendingMessage ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,15 +1,43 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
 import './AuthorProfile.css'
 
 function AuthorProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { isAuthenticated, token, user } = useAuth()
   const [author, setAuthor] = useState(null)
   const [blogs, setBlogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showChat, setShowChat] = useState(false)
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatError, setChatError] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('not_connected')
+  const [connectionRequestId, setConnectionRequestId] = useState(null)
+  const [connectionLoading, setConnectionLoading] = useState(false)
+  const [connectionError, setConnectionError] = useState('')
+  const [connectionActionLoading, setConnectionActionLoading] = useState(false)
+  const chatEndRef = useRef(null)
+
+  const renderMessageTicks = (msg, isMine) => {
+    if (!isMine) return null
+
+    const isRead = Boolean(msg.readAt)
+    const isDelivered = Boolean(msg.deliveredAt)
+    const tick = isDelivered || isRead ? '✓✓' : '✓'
+    const tickColor = isRead ? '#1d9bf0' : '#8f97a3'
+
+    return (
+      <span style={{ marginLeft: '6px', color: tickColor, fontWeight: 700, fontSize: '11px' }}>
+        {tick}
+      </span>
+    )
+  }
 
   useEffect(() => {
     const fetchAuthorData = async () => {
@@ -59,6 +87,194 @@ function AuthorProfile() {
 
     fetchAuthorData()
   }, [id])
+
+  const fetchConnectionStatus = async () => {
+    if (!isAuthenticated || !token || !id) {
+      setConnectionStatus('not_connected')
+      return
+    }
+
+    if (user?.id && String(user.id) === String(id)) {
+      setConnectionStatus('self')
+      return
+    }
+
+    try {
+      setConnectionError('')
+      setConnectionLoading(true)
+
+      const response = await fetch(`http://localhost:5000/api/connections/${id}/status`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to get connection status')
+      }
+
+      setConnectionStatus(data.status || 'not_connected')
+      setConnectionRequestId(data.requestId || null)
+    } catch (err) {
+      setConnectionError(err.message || 'Failed to load connection status')
+    } finally {
+      setConnectionLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchConnectionStatus()
+  }, [id, isAuthenticated, token, user])
+
+  const handleConnectRequest = async () => {
+    if (!isAuthenticated || !token) {
+      navigate('/login')
+      return
+    }
+
+    try {
+      setConnectionActionLoading(true)
+      setConnectionError('')
+
+      const response = await fetch(`http://localhost:5000/api/connections/${id}/request`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send request')
+      }
+
+      setConnectionStatus(data.status || 'pending_sent')
+      setConnectionRequestId(data.requestId || null)
+    } catch (err) {
+      setConnectionError(err.message || 'Failed to send request')
+    } finally {
+      setConnectionActionLoading(false)
+    }
+  }
+
+  const handleRespondToRequest = async (action) => {
+    if (!connectionRequestId || !token) {
+      return
+    }
+
+    try {
+      setConnectionActionLoading(true)
+      setConnectionError('')
+
+      const response = await fetch(`http://localhost:5000/api/connections/requests/${connectionRequestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action })
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to ${action} request`)
+      }
+
+      setConnectionStatus(action === 'accept' ? 'connected' : 'not_connected')
+      if (action !== 'accept') {
+        setConnectionRequestId(null)
+      }
+    } catch (err) {
+      setConnectionError(err.message || `Failed to ${action} request`)
+    } finally {
+      setConnectionActionLoading(false)
+    }
+  }
+
+  const fetchConversation = async () => {
+    if (!isAuthenticated || !token || !user || !id) {
+      return
+    }
+
+    try {
+      setChatError('')
+      setChatLoading(true)
+
+      const response = await fetch(`http://localhost:5000/api/chat/${id}/messages`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load chat messages')
+      }
+
+      setChatMessages(data.messages || [])
+    } catch (err) {
+      setChatError(err.message || 'Failed to load chat')
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!showChat || connectionStatus !== 'connected') {
+      return
+    }
+
+    fetchConversation()
+
+    const intervalId = setInterval(() => {
+      fetchConversation()
+    }, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [showChat, id, isAuthenticated, token, user, connectionStatus])
+
+  useEffect(() => {
+    if (showChat && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [chatMessages, showChat])
+
+  const handleSendMessage = async () => {
+    const content = chatInput.trim()
+
+    if (!content || !token) {
+      return
+    }
+
+    setIsSending(true)
+    setChatError('')
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/chat/${id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ content })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message')
+      }
+
+      setChatMessages((prev) => [...prev, data.data])
+      setChatInput('')
+    } catch (err) {
+      setChatError(err.message || 'Failed to send message')
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -112,9 +328,34 @@ function AuthorProfile() {
                   </span>
                 </div>
               </div>
-              <button className="author-profile-connect-btn" onClick={() => setShowChat(true)}>
-                Connect
-              </button>
+              {connectionError && (
+                <p style={{ color: '#ff6b6b', marginTop: '10px', fontSize: '13px' }}>{connectionError}</p>
+              )}
+
+              {connectionLoading ? (
+                <button className="author-profile-connect-btn" disabled>Loading...</button>
+              ) : connectionStatus === 'self' ? null : connectionStatus === 'connected' ? (
+                <button className="author-profile-connect-btn" onClick={() => setShowChat(true)}>
+                  Connected
+                </button>
+              ) : connectionStatus === 'pending_sent' ? (
+                <button className="author-profile-connect-btn" disabled>
+                  Request Sent
+                </button>
+              ) : connectionStatus === 'pending_received' ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <button className="author-profile-connect-btn" onClick={() => handleRespondToRequest('accept')} disabled={connectionActionLoading}>
+                    Accept
+                  </button>
+                  <button className="author-profile-connect-btn" onClick={() => handleRespondToRequest('decline')} disabled={connectionActionLoading} style={{ background: '#7a8799' }}>
+                    Decline
+                  </button>
+                </div>
+              ) : (
+                <button className="author-profile-connect-btn" onClick={handleConnectRequest} disabled={connectionActionLoading}>
+                  {connectionActionLoading ? 'Sending...' : 'Connect'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -148,7 +389,7 @@ function AuthorProfile() {
       </div>
 
       {/* Chat Panel */}
-      {showChat && (
+      {showChat && connectionStatus === 'connected' && (
         <div className="author-profile-chat-overlay">
           <div className="author-profile-chat-panel">
             {/* Chat Header */}
@@ -165,7 +406,58 @@ function AuthorProfile() {
 
             {/* Messages Area */}
             <div className="author-profile-chat-messages">
-              <p className="author-profile-chat-empty">Start a conversation...</p>
+              {!isAuthenticated && (
+                <p className="author-profile-chat-empty">
+                  Please sign in to start chatting.
+                </p>
+              )}
+
+              {isAuthenticated && chatLoading && chatMessages.length === 0 && (
+                <p className="author-profile-chat-empty">Loading messages...</p>
+              )}
+
+              {isAuthenticated && chatError && (
+                <p className="author-profile-chat-empty" style={{ color: '#c33' }}>
+                  {chatError}
+                </p>
+              )}
+
+              {isAuthenticated && !chatLoading && !chatError && chatMessages.length === 0 && (
+                <p className="author-profile-chat-empty">Start a conversation...</p>
+              )}
+
+              {isAuthenticated && chatMessages.map((msg) => {
+                const isMine = String(msg.sender) === String(user?.id)
+
+                return (
+                  <div
+                    key={msg._id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: isMine ? 'flex-end' : 'flex-start',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: '75%',
+                        padding: '10px 12px',
+                        borderRadius: '12px',
+                        background: isMine ? '#dcf8c6' : '#f1f1f1',
+                        color: '#222',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <div>{msg.content}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {renderMessageTicks(msg, isMine)}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              <div ref={chatEndRef} />
             </div>
 
             {/* Input Area */}
@@ -174,9 +466,22 @@ function AuthorProfile() {
                 type="text"
                 className="author-profile-chat-input"
                 placeholder="Type a message..."
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }
+                }}
+                disabled={!isAuthenticated || isSending}
               />
-              <button className="author-profile-chat-send-btn">
-                Send
+              <button
+                className="author-profile-chat-send-btn"
+                onClick={handleSendMessage}
+                disabled={!isAuthenticated || isSending || !chatInput.trim()}
+              >
+                {isSending ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>

@@ -7,6 +7,8 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const storyRoutes = require("./routes/storyRoutes");
 const symptomRoutes = require("./routes/symptomRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const connectionRoutes = require("./routes/connectionRoutes");
 
 dotenv.config();
 
@@ -23,6 +25,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/symptom-analysis", symptomRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/connections", connectionRoutes);
 
 // test route
 app.get("/", (req, res) => {
